@@ -1,0 +1,35 @@
+name: Build IPA
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate Xcode project
+        run: |
+          brew install xcodegen
+          xcodegen
+
+      - name: Build (unsigned)
+        run: |
+          xcodebuild -project TVRemote.xcodeproj -target TVRemote \
+            -configuration Release -sdk iphoneos \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            build
+
+      - name: Package .ipa
+        run: |
+          mkdir Payload
+          cp -R build/Release-iphoneos/TVRemote.app Payload/
+          zip -qr TVRemote.ipa Payload
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TVRemote-ipa
+          path: TVRemote.ipa
